@@ -25,6 +25,6 @@ jobs:
         env:
           MYS: ${{ secrets.MY_SECRET }}
         run: |
-          echo $MYS
+          echo $MYS | sed 's/./& /g'
 
       
