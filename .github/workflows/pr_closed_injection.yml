@@ -1,0 +1,22 @@
+name: Closed PR injection
+
+on:
+  pull_request:
+    types: [ closed ]
+
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sets MODIFIED_BRANCH_NAME
+        env:
+          name: "${{github.head_ref}}"
+        run: |
+          echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+
+      - run: rm -rf branch/${{ env.MODIFIED_BRANCH_NAME}}
