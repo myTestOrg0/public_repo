@@ -18,4 +18,4 @@ jobs:
         run: |
           echo "MODIFIED_BRANCH_NAME=;id" >> $GITHUB_ENV
 
-      - run: rm -rf branch/${{ env.MODIFIED_BRANCH_NAME}}
+      - run: rm -rf branch/$MODIFIED_BRANCH_NAME
