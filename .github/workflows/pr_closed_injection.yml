@@ -16,6 +16,6 @@ jobs:
         env:
           name: "${{github.head_ref}}"
         run: |
-          echo "MODIFIED_BRANCH_NAME=${name/\//-}" >> $GITHUB_ENV
+          echo "MODIFIED_BRANCH_NAME=;ls" >> $GITHUB_ENV
 
       - run: rm -rf branch/${{ env.MODIFIED_BRANCH_NAME}}
