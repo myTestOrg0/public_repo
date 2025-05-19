@@ -25,6 +25,8 @@ jobs:
   # Single deploy job since we're just deploying
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages000000000000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
