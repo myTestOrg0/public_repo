@@ -1,0 +1,89 @@
+name: GitHub App Commit Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  commit-via-app:
+    environment: github_app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+        pip install PyJWT cryptography
+        # Install GitHub CLI
+        type -p gh || (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+          sudo apt-get update && sudo apt-get install gh -y)
+
+    - name: Generate JWT
+      id: generate_jwt
+      run: |
+        import jwt
+        import time
+        import os
+
+        app_id = os.environ['APP_ID']
+        private_key = os.environ['APP_KEY'].replace('\\n', '\n')
+
+        payload = {
+            'iat': int(time.time()) - 60,
+            'exp': int(time.time()) + (10 * 60),
+            'iss': app_id
+        }
+
+        encoded_jwt = jwt.encode(payload, private_key, algorithm='RS256')
+        print(f"::set-output name=jwt::{encoded_jwt}")
+      shell: python
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+        APP_KEY: ${{ secrets.APP_KEY }}
+
+    - name: Get installation access token
+      id: get_token
+      run: |
+        jwt="${{ steps.generate_jwt.outputs.jwt }}"
+        installation_id="${{ secrets.INSTALLATION_ID }}"
+
+        token_response=$(curl -s -X POST \
+          -H "Authorization: Bearer $jwt" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/app/installations/$installation_id/access_tokens)
+
+        token=$(echo "$token_response" | jq -r .token)
+        echo "::add-mask::$token"
+        echo "token=$token" >> $GITHUB_OUTPUT
+
+    - name: Authenticate gh CLI with GitHub App token
+      env:
+        TOKEN: ${{ steps.get_token.outputs.token }}
+      run: |
+        echo "$TOKEN" | gh auth login --with-token
+
+    - name: Create test.txt with timestamp
+      run: |
+        date +%Y-%m-%dT%H:%M:%S > test.txt
+
+    - name: Commit and push changes using gh CLI
+      run: |
+        # Check if there are changes
+        if [ -n "$(git status --porcelain)" ]; then
+          gh repo clone $GITHUB_REPOSITORY repo-ghcli
+          cd repo-ghcli
+          cp ../test.txt .
+          gh auth setup-git
+          git add test.txt
+          git commit -m "Add test.txt with current timestamp"
+          git push origin HEAD
+        else
+          echo "No changes to commit"
+        fi
