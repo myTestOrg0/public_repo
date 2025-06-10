@@ -1,4 +1,4 @@
-name: GitHub App Commit Workflow
+name: GitHub App Commit Workflow with GH CLI
 
 on:
   workflow_dispatch:
