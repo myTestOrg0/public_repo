@@ -60,12 +60,12 @@ jobs:
 
     - name: Push timestamp file
       env:
-        GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+        TOKEN: ${{ steps.get_token.outputs.token }}
       run: |
         git config user.name "GitHub App"
         git config user.email "app@github.com"
-        git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/${{ github.repository }}
         date +%Y-%m-%dT%H:%M:%S > test.txt
         git add test.txt
+        git remote set-url origin https://x-access-token:$TOKEN@github.com/${{ github.repository }}
         git commit -m "Add test.txt with current timestamp" 
         git push origin main
