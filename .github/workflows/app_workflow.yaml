@@ -56,7 +56,7 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
       with: 
-        persist_credentials: false
+        persist-credentials: false
 
     - name: Push timestamp file
       env:
