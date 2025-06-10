@@ -11,6 +11,8 @@ jobs:
       contents: write
 
     steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
     - name: Install JWT lib
       run: pip install PyJWT cryptography
@@ -51,12 +53,7 @@ jobs:
 
         token=$(echo "$token_response" | jq -r .token)
         echo "::add-mask::$token"
-        echo "token=$token" >> "$GITHUB_OUTPUT"
-
-    - name: Checkout repo
-      uses: actions/checkout@v4
-      with: 
-        persist-credentials: false
+        echo "token=$token" >> $GITHUB_OUTPUT
 
     - name: Set git config
       run: |
