@@ -58,14 +58,20 @@ jobs:
       with: 
         persist-credentials: false
 
-    - name: Push timestamp file
-      env:
-        TOKEN: ${{ steps.get_token.outputs.token }}
+    - name: Set git config
       run: |
         git config user.name "GitHub App"
         git config user.email "app@github.com"
+
+    - name: Create test.txt with timestamp
+      run: |
         date +%Y-%m-%dT%H:%M:%S > test.txt
         git add test.txt
+        git commit -m "Add test.txt with current timestamp" || echo "No changes"
+
+    - name: Push to main branch
+      env:
+        TOKEN: ${{ steps.get_token.outputs.token }}
+      run: |
         git remote set-url origin https://x-access-token:$TOKEN@github.com/${{ github.repository }}
-        git commit -m "Add test.txt with current timestamp" 
         git push origin main
