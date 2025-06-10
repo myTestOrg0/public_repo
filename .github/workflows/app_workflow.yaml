@@ -71,4 +71,4 @@ jobs:
         TOKEN: ${{ steps.get_token.outputs.token }}
       run: |
         git remote set-url origin https://x-access-token:$TOKEN@github.com/${{ github.repository }}
-        git push origin main
+        git push origin HEAD
