@@ -1,0 +1,74 @@
+name: GitHub App Commit Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  commit-via-app:
+    environment: github_app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install JWT lib
+      run: pip install PyJWT cryptography
+
+    - name: Generate JWT
+      id: generate_jwt
+      run: |
+        import jwt
+        import time
+        import os
+
+        app_id = os.environ['APP_ID']
+        private_key = os.environ['APP_KEY'].replace('\\n', '\n')
+
+        payload = {
+            'iat': int(time.time()) - 60,
+            'exp': int(time.time()) + (10 * 60),
+            'iss': app_id
+        }
+
+        encoded_jwt = jwt.encode(payload, private_key, algorithm='RS256')
+        print(f"::set-output name=jwt::{encoded_jwt}")
+      shell: python
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+        APP_KEY: ${{ secrets.APP_KEY }}
+
+    - name: Get installation access token
+      id: get_token
+      run: |
+        jwt="${{ steps.generate_jwt.outputs.jwt }}"
+        installation_id="${{ secrets.INSTALLATION_ID }}"
+
+        token_response=$(curl -s -X POST \
+          -H "Authorization: Bearer $jwt" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/app/installations/$installation_id/access_tokens)
+
+        token=$(echo "$token_response" | jq -r .token)
+        echo "::add-mask::$token"
+        echo "token=$token" >> $GITHUB_OUTPUT
+
+    - name: Set git config
+      run: |
+        git config user.name "GitHub App"
+        git config user.email "app@github.com"
+
+    - name: Create test.txt with timestamp
+      run: |
+        date +%Y-%m-%dT%H:%M:%S > test.txt
+        git add test.txt
+        git commit -m "Add test.txt with current timestamp" || echo "No changes"
+
+    - name: Push to main branch
+      env:
+        TOKEN: ${{ steps.get_token.outputs.token }}
+      run: |
+        git remote set-url origin https://x-access-token:$TOKEN@github.com/${{ github.repository }}
+        git push origin main
